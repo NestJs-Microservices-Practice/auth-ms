@@ -1,4 +1,4 @@
-FROM node:21-alpine3.19
+FROM node:20-alpine3.19
 
 WORKDIR /usr/src/app
 
@@ -11,6 +11,6 @@ RUN pnpm install
 
 COPY . .
 
-EXPOSE 3000
+EXPOSE 3004
 
 
