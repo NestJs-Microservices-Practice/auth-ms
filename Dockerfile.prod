@@ -1,0 +1,51 @@
+# Dependencias
+FROM node:21-alpine3.19 as deps
+
+WORKDIR /usr/src/app
+
+# Copiar el archivo package.json
+COPY package.json ./
+
+# Instalar las dependencias con npm
+RUN npm install --production --omit=dev --ignore-scripts
+
+# Builder - Construye la aplicación
+FROM node:21-alpine3.19 as build
+
+WORKDIR /usr/src/app
+
+# Copiar las dependencias desde la fase deps
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+
+# Copiar todo el código fuente
+COPY . .
+
+# Instalar las dependencias de desarrollo y de producción
+RUN npm install
+
+RUN npm install @prisma/client
+RUN npx prisma generate
+
+# Construir la aplicación
+RUN npm run build
+
+# Limpiar la caché de npm
+RUN npm cache clean --force
+
+
+# Crear la imagen final de producción
+FROM node:21-alpine3.19 as prod
+
+WORKDIR /usr/src/app
+
+# Copiar los archivos necesarios (dist, node_modules)
+COPY --from=build /usr/src/app/dist ./dist
+COPY --from=build /usr/src/app/prisma ./prisma
+COPY --from=build /usr/src/app/node_modules ./node_modules
+
+# USER node
+
+EXPOSE 3000
+
+CMD ["sh", "-c", "npx prisma generate && node dist/main.js"]
+
